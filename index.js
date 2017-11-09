@@ -1,69 +1,87 @@
-/*
-- create tree of elements
--
-- Scan tree for elements that are too old
-- Minimize any nodes whose children are all too old
-
-el.noshow means the thing has already been hidden
-el.coll means the thing is shown but collapsed
- */
-
-/*
-for each element
-get current indent
-
- */
-//
-// if (!window.addClass) {
-//     window.addClass = function (el, cl) {
-//         if (el) {
-//             var a = el.className.split(' ');
-//             if (!afind(cl, a)) {
-//                 a.unshift(cl);
-//                 el.className = a.join(' ')
-//             }
-//         }
-//     }
-//
-//     window.addClass = addClass
-// }
 
 (function () {
-    const SECOND = 1000;
-    const MINUTE = SECOND * 60;
-    const HOUR = MINUTE * 60;
-    const DAY = HOUR * 24;
+    // Shamelessly copied from the hn.js source
+    function $(id) { return document.getElementById(id); }
+    function remClass (el, cl) { if (el) { var a = el.className.split(' '); arem(a, cl); el.className = a.join(' ') } }
+    function aeach (fn, a) { return Array.prototype.forEach.call(a, fn) }
+    function elShow (el) { remClass(el, 'noshow') }
+    function byClass (el, cl) { return el ? el.getElementsByClassName(cl) : [] }
+    function vis(el, on) { if (el) { on ? remClass(el, 'nosee') : addClass(el, 'nosee') } }
+    function comments () { return allof('comtr') }
+    function collapsed () { return allof('coll') }
+    function hasClass (el, cl) { var a = el.className.split(' '); return afind(cl, a) }
+    function addClass (el, cl) { if (el) { var a = el.className.split(' '); if (!afind(cl, a)) { a.unshift(cl); el.className = a.join(' ')}} }
+    function apos (x, a) { return (typeof x == 'function') ? posf(x,a) : Array.prototype.indexOf.call(a,x) }
+    function acut (a, m, n) { return Array.prototype.slice.call(a, m, n) }
+    function ind (el) { return (byTag(el, 'img')[0] || {}).width }
+    function byTag (el, tg) { return el ? el.getElementsByTagName(tg) : [] }
+    function allof (cl) { return byClass(document, cl) }
+    function arem (a, x) { var i = apos(x, a); if (i >= 0) { a.splice(i, 1); } return a; }
+    function afind (x, a) { var i = apos(x, a); return (i >= 0) ? a[i] : null; }
+    function posf (f, a) { for (var i=0; i < a.length; i++) { if (f(a[i])) return i; } return -1; }
+    function noshow (el) { addClass(el, 'noshow') }
+    function kidsOf (id) {
+        var ks = [];
+        var trs = comments();
+        var i = apos($(id), trs);
+        if (i >= 0) {
+            ks = acut(trs, i + 1);
+            var n = ind($(id));
+            var j = apos(function(tr) {return ind(tr) <= n}, ks);
+            if (j >= 0) { ks = acut(ks, 0, j) }
+        }
+        return ks;
+    }
+    function squish (tr) {
+        if (hasClass(tr, 'noshow')) return;
+        aeach(noshow, kidsOf(tr.id));
+        var el = byClass(tr, 'togg')[0];
+        el.innerHTML = '[+' + el.getAttribute('n') + ']';
+        noshow(byClass(tr, 'comment')[0]);
+        vis(byClass(tr, 'votelinks')[0], false);
+    }
+    function expand (tr) {
+        elShow(tr);
+        elShow(byClass(tr, 'comment')[0]);
+        vis(byClass(tr, 'votelinks')[0], true);
+        byClass(tr, 'togg')[0].innerHTML = '[-]';
+    }
+    function recoll() {
+        aeach(expand, comments());
+        aeach(squish, collapsed());
+    }
+    // /End hn.js polyfill
 
     const NOW = new Date();
+    const MINUTE_TYPE = 'Minutes';
+    const HOUR_TYPE = 'Hours';
+    const DAY_TYPE = 'Date';
+    const quantitySelector = 'hnhoc-time-val';
+    const typeSelector = 'hnhoc-time-type';
+    const buttonSelector = 'hnhc-submit-button';
 
-    function findNodesToHide(comments, olderThan) {
+    function findBranchesToTrim(comments, olderThan) {
         const commentsToHide = [];
         for (let comment of comments) {
-            const [isVisible, descendantsToHide] = evaluate(comment, olderThan);
+            const [isVisible, descendantsToHide] = evaluateComment(comment, olderThan);
             commentsToHide.push(...descendantsToHide);
         }
         return commentsToHide;
     }
 
-    window.findNodesToHide = findNodesToHide;
-
     function hideComments(comments) {
         for (let comment of comments) {
             addClass(comment.el, 'coll');
         }
-        recoll();
     }
 
     function showComments (comments) {
         for (let comment of comments) {
             remClass(comment.el, 'coll');
         }
-        recoll();
     }
-    window.hideComments = hideComments
-    window.showComments = showComments
 
-    function evaluate(comment, olderThan) {
+    function evaluateComment(comment, olderThan) {
         if (comment.isYoungerThan(olderThan)) {
             // all descendants will naturally be younger that this and will not need to be hidden
             return [true, []];
@@ -75,7 +93,7 @@ get current indent
         const allHiddenDescendants = [];
 
         for (let child of comment.children) {
-            const [childIsVisible, descendantsToHide] = evaluate(child, olderThan);
+            const [childIsVisible, descendantsToHide] = evaluateComment(child, olderThan);
 
             if (childIsVisible) {
                 visibleChildren.push(child);
@@ -95,9 +113,6 @@ get current indent
             return [false, [comment]];
         }
     }
-
-    window.evaluate = evaluate;
-
 
     /**
      * @param {UserComment} comment
@@ -173,17 +188,10 @@ get current indent
     }
 
     /**
-     * @returns {string}
-     */
-    UserComment.prototype.getAgeString = function () {
-        return this.el.querySelector('.age>a').innerText;
-    }
-
-    /**
      * @returns {Number}
      */
     UserComment.prototype.getPostDate = function () {
-        return getPostDate(this.getAgeString(), NOW);
+        return getPostDate(this.el.querySelector('.age>a').innerText, NOW);
     }
 
     /**
@@ -196,7 +204,7 @@ get current indent
 
     /**
      * Subtract a value from a date
-     * @param {Date} date
+     * @param {Date} date [MINUTE_TYPE|HOUR_TYPE|DAY_TYPE]
      * @param {String} type
      * @param {Number|String} amount
      * @returns {Number} a new date as a number, with the time subtracted
@@ -222,33 +230,64 @@ get current indent
         // e.g. 1 minute ago or 11 minutes ago
         const minuteIndex = dateString.indexOf('minute');
         if (minuteIndex !== -1) {
-            return subtractTime(reference, 'Minutes', dateString.slice(0, minuteIndex - 1));
+            return subtractTime(reference, MINUTE_TYPE, dateString.slice(0, minuteIndex - 1));
         }
 
         // e.g. 1 hour ago or 11 hours ago
         const hourIndex = dateString.indexOf('hour');
         if (hourIndex !== -1) {
-            return subtractTime(reference, 'Hours', dateString.slice(0, hourIndex - 1));
+            return subtractTime(reference, HOUR_TYPE, dateString.slice(0, hourIndex - 1));
         }
 
         // e.g. 1 day ago or 11 days ago
         const dayIndex = dateString.indexOf('day');
         if (dayIndex !== -1) {
-            return subtractTime(reference, 'Date', dateString.slice(0, dayIndex - 1));
+            return subtractTime(reference, DAY_TYPE, dateString.slice(0, dayIndex - 1));
         }
     }
 
-    window.getPostDate = getPostDate;
 
-    window.createTrees = createTrees;
-    window.trees = createTrees();
-    window.allComments = Array.from(document.querySelectorAll('.athing.comtr')).map(el => new UserComment(el))
-    window.hideAllComments = (s) => {
-        let hidden = findNodesToHide(trees, getPostDate(s, NOW));
-        hideComments(hidden);
-        return hidden;
+    function main () {
+        const timeVal = document.getElementById(quantitySelector).value;
+        const timeType = document.getElementById(typeSelector).value;
+        const cutoffDate = subtractTime(NOW, timeType, timeVal);
+
+        const commentTrees = createTrees()
+        const commentsToHide = findBranchesToTrim(commentTrees, cutoffDate);
+
+        // remove the hidden state from all comments
+        showComments(Array.from(document.querySelectorAll('.athing.comtr')).map(el => new UserComment(el)));
+        // add the hidden state to old comments
+        hideComments(commentsToHide);
+        // re-paint
+        recoll();
     }
-    window.showAllComments = () => showComments(allComments);
-    window.NOW = NOW;
 
+    const body = `
+<table class="fatitem" border="0">
+    <tbody>
+    <tr>
+        <td colspan="2" class="ind">
+            <img src="s.gif" height="1" width="20">
+        </td>
+        <td class="">
+            <span>Hide comments older than:</span>
+            <input id="${quantitySelector}" type="number" min="1" value="1" style="width: 4em">
+            <select id="${typeSelector}">
+                <option value="${MINUTE_TYPE}">Minute(s)</option>
+                <option value="${HOUR_TYPE}">Hour(s)</option>
+                <option value="${DAY_TYPE}">Day(s)</option>
+            </select>
+            <button id="${buttonSelector}">Filter</button>
+        </td>
+    </tr>
+    </tbody>
+</table>
+        `;
+
+    document
+        .querySelector('table.comment-tree')
+        .insertAdjacentHTML('beforebegin', body);
+
+    document.getElementById(buttonSelector).addEventListener('click', main);
 })();

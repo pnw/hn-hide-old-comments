@@ -1,0 +1,20 @@
+{
+  "manifest_version": 2,
+  "name": "Hacker News: Hide Old Comments",
+  "version": "0.1",
+  "description": "This extension allows the user to collapse old comments based on user input",
+  "permissions": [
+    "activeTab"
+  ],
+  "author": "Patrick Walsh",
+  "content_scripts": [
+    {
+      "matches": [
+        "*://news.ycombinator.com/item*"
+      ],
+      "js": [
+        "index.js"
+      ]
+    }
+  ]
+}
