@@ -59,6 +59,7 @@
     const quantitySelector = 'hnhoc-time-val';
     const typeSelector = 'hnhoc-time-type';
     const buttonSelector = 'hnhc-submit-button';
+    const showAllButton = 'hnhc-show-all-button';
 
     function findBranchesToTrim(comments, olderThan) {
         const commentsToHide = [];
@@ -212,7 +213,7 @@
     function subtractTime(date, type, amount) {
         const getter = 'get' + type;
         const setter = 'set' + type;
-        return new Date(date)[setter](date[getter]() - parseInt(amount, 10));
+        return new Date(date)[setter](date[getter]() - parseFloat(amount));
     }
 
     /**
@@ -246,8 +247,7 @@
         }
     }
 
-
-    function main () {
+    function filterComments () {
         const timeVal = document.getElementById(quantitySelector).value;
         const timeType = document.getElementById(typeSelector).value;
         const cutoffDate = subtractTime(NOW, timeType, timeVal);
@@ -256,10 +256,14 @@
         const commentsToHide = findBranchesToTrim(commentTrees, cutoffDate);
 
         // remove the hidden state from all comments
-        showComments(Array.from(document.querySelectorAll('.athing.comtr')).map(el => new UserComment(el)));
+        showComments(Array.from(document.querySelectorAll('.comtr')).map(el => new UserComment(el)));
         // add the hidden state to old comments
         hideComments(commentsToHide);
         // re-paint
+        recoll();
+    }
+    function showAll () {
+        showComments(Array.from(document.querySelectorAll('.comtr')).map(el => new UserComment(el)));
         recoll();
     }
 
@@ -275,10 +279,11 @@
             <input id="${quantitySelector}" type="number" min="1" value="1" style="width: 4em">
             <select id="${typeSelector}">
                 <option value="${MINUTE_TYPE}">Minute(s)</option>
-                <option value="${HOUR_TYPE}">Hour(s)</option>
+                <option value="${HOUR_TYPE}" selected="selected">Hour(s)</option>
                 <option value="${DAY_TYPE}">Day(s)</option>
             </select>
             <button id="${buttonSelector}">Filter</button>
+            <button id="${showAllButton}">Show all</button>
         </td>
     </tr>
     </tbody>
@@ -289,5 +294,7 @@
         .querySelector('table.comment-tree')
         .insertAdjacentHTML('beforebegin', body);
 
-    document.getElementById(buttonSelector).addEventListener('click', main);
+    document.getElementById(buttonSelector).addEventListener('click', filterComments);
+    document.getElementById(showAllButton).addEventListener('click', showAll);
+
 })();
