@@ -1,4 +1,4 @@
-# hn-hide-old-comments
+# Hacker News: Hide Old Comments
 A simple Chrome browser extention that allows you to automatically
 collapse old comment threads when you revisit an interesting discussion.
 
