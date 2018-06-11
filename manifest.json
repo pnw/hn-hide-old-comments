@@ -3,7 +3,7 @@
   "name": "Hacker News: Hide Old Comments",
   "version": "0.1",
   "description": "This extension allows the user to collapse old comments based on user input",
-  "author": "Patrick Walsh <>",
+  "author": "Patrick Walsh <patrick+3@ptrck.io>",
   "content_scripts": [
     {
       "matches": [
